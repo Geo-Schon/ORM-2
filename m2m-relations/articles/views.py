@@ -1,14 +1,10 @@
-from django.views.generic import ListView
 from django.shortcuts import render
-from .models import Article, ArticleScope
+from articles.models import Article
 
 
 def articles_list(request):
     template = 'articles/news.html'
     ordering = '-published_at'
-    context = {'articles': Article.objects.order_by(ordering).all()}
-    # for article in context['articles']:
-    #     all_article_scopes = ArticleScope.objects.filter(article__id=article[id])
-    #     print(all_article_scopes)
-    print(context)
+    object_list = Article.objects.all().order_by(ordering)
+    context = {'object_list': object_list}
     return render(request, template, context)

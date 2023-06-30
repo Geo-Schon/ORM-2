@@ -1,46 +1,36 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
+from .models import Article, ArticleToTag, Tag
 
 
-from .models import Article, Scope, ArticleScope
-
-
-@admin.register(Scope)
-class ScopeAdmin(admin.ModelAdmin):
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(ArticleScope)
-class ArticleScopeAdmin(admin.ModelAdmin):
-    pass
-
-
-class ArticleScopeInlineFormset(BaseInlineFormSet):
+class ArticleToTagFormset(BaseInlineFormSet):
     def clean(self):
-        if len(self.forms) == 0:
-            raise ValidationError('Не определены рубрики')
-
-        count_main = 0
+        has_main = False
         for form in self.forms:
-            # В form.cleaned_data будет словарь с данными
-            # каждой отдельной формы, которые вы можете проверить
-            if form.cleaned_data['is_main']:
-                count_main += 1
-            if count_main > 1:
-                raise ValidationError('Главная рубрика отмечена более одного раза!')
-            # вызовом исключения ValidationError можно указать админке о наличие ошибки
-            # таким образом объект не будет сохранен,
-            # а пользователю выведется соответствующее сообщение об ошибке
-            #raise ValidationError('Тут всегда ошибка')
-        return super().clean()  # вызываем базовый код переопределяемого метода
+            is_main = form.cleaned_data.get('is_main')
+            if is_main and not has_main:
+                has_main = True
+                continue
+            elif not is_main:
+                continue
+            elif is_main and has_main:
+                raise ValidationError('Главный раздел может быть только один!')
+        if not has_main:
+            raise ValidationError('Нужен хотя бы один главный раздел!')
+        return super().clean()
 
 
-class ArticleScopeInline(admin.TabularInline):
-    model = ArticleScope
-    formset = ArticleScopeInlineFormset
+class ArticleToTagInline(admin.TabularInline):
+    model = ArticleToTag
+    formset = ArticleToTagFormset
 
 
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
-    inlines = [ArticleScopeInline]
+    inlines = [ArticleToTagInline]
